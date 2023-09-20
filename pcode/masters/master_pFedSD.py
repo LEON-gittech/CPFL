@@ -74,7 +74,7 @@ class MasterpFedSD(MasterBase):
                 f"Master starting one round of federated learning: (comm_round={comm_round})."
             )
 
-            # get random n_local_epochs.
+            # get random n_local_epochs. #如果没有设定固定的 client epoch，则会根据 min-epoch 随机选择
             list_of_local_n_epochs = master_utils.get_n_local_epoch(
                 conf=self.conf, n_participated=self.conf.n_participated
             )
@@ -89,7 +89,7 @@ class MasterpFedSD(MasterBase):
             # self._check_early_stopping()
 
             # init the activation tensor and broadcast to all clients (either start or stop).
-            self._activate_selected_clients(
+            self._activate_selected_clients( 
                 selected_client_ids, self.conf.graph.comm_round, list_of_local_n_epochs
             )
 
@@ -108,10 +108,10 @@ class MasterpFedSD(MasterBase):
                 selected_client_ids
             )
             self.activated_ids.update(selected_client_ids)
-
+            #更新 master 存储的各 client 上一轮的模型
             self.update_local_models(selected_client_ids, flatten_local_models)
 
-            # aggregate the local models and evaluate on the validation dataset.
+            # aggregate the local models and evaluate on the validation dataset. #平均
             self._aggregate_model(selected_client_ids) 
             
             if self.conf.personal_test:
@@ -132,6 +132,10 @@ class MasterpFedSD(MasterBase):
         # the second row indicates the current_comm_round,
         # the third row indicates the expected local_n_epochs
         selected_client_ids = np.array(selected_client_ids)
+        
+        # The `activation_msg` is a tensor used to activate selected clients for training in federated
+        # learning. It has a shape of `(4, len(selected_client_ids))`, where each row represents
+        # different information.
         activation_msg = torch.zeros((4, len(selected_client_ids)))
         activation_msg[0, :] = torch.Tensor(selected_client_ids)
         activation_msg[1, :] = comm_round
@@ -159,7 +163,7 @@ class MasterpFedSD(MasterBase):
                 f"\tMaster send the global model to process_id={worker_rank}."
             )
 
-            if selected_client_id in self.activated_ids:
+            if selected_client_id in self.activated_ids: #所以上一轮的 client model 并没有保存在 client 本地，而是在下一轮由 master 发给 client，但是为什么不保存在本地呢？
                 # send local model
                 local_model_state_dict = self.local_models[selected_client_id].state_dict()
                 flatten_local_model = TensorBuffer(list(local_model_state_dict.values()))
@@ -173,6 +177,15 @@ class MasterpFedSD(MasterBase):
         self.master_model.load_state_dict(self._average_model(selected_client_ids).state_dict())
 
     def _update_personalized_global_models(self, selected_client_ids):
+        """
+        The function updates personalized global models by copying selected weights from local models to
+        the personalized global models.
+        
+        :param selected_client_ids: The parameter "selected_client_ids" is a list of client IDs. These
+        client IDs represent the clients that have been selected for updating their personalized global
+        models
+        :return: nothing (None).
+        """
         if self.conf.graph.comm_round == 1:
             return
         w_master = self.master_model.state_dict()

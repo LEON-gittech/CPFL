@@ -31,7 +31,7 @@ class WorkerpFedSD(WorkerBase):
 
     def run(self):
         while True:
-            self._listen_to_master()
+            self._listen_to_master() #每一轮的初始化
 
             # check if we need to terminate the training or not.
             if self._terminate_by_early_stopping():
@@ -50,7 +50,7 @@ class WorkerpFedSD(WorkerBase):
             if self._terminate_by_complete_training():
                 return
     
-    def _listen_to_master(self):
+    def _listen_to_master(self): #每一轮的初始化
         # listen to master, related to the function `_activate_selected_clients` in `master.py`.
         msg = torch.zeros((4, self.conf.n_participated))
         dist.broadcast(tensor=msg, src=0)
@@ -60,7 +60,7 @@ class WorkerpFedSD(WorkerBase):
 
         # once we receive the signal, we init for the local training.
         self.arch, self.model = create_model.define_model(
-            self.conf, to_consistent_model=False, client_id=self.conf.graph.client_id
+            self.conf, to_consistent_model=False, client_id=self.conf.graph.client_id #这里的 client_id 用于在使用复杂结构，即不同主机的模型结构不一致时，决定不同主机使用哪个模型，对于统一模型结构没有什么用
         )
         self.model_state_dict = self.model.state_dict()
         self.model_tb = TensorBuffer(list(self.model_state_dict.values()))
@@ -77,7 +77,7 @@ class WorkerpFedSD(WorkerBase):
             f"Worker-{self.conf.graph.worker_id} (client-{self.conf.graph.client_id}) received the global/personal model ({self.arch}) from Master."
         )
         
-        if self.is_active_before == 1:
+        if self.is_active_before == 1: #第一轮就不需要了
             # init the placeholders to recv the other local models from master.
             flatten_local_models = []
             for i in range(self.M):
@@ -86,7 +86,7 @@ class WorkerpFedSD(WorkerBase):
                 )
                 client_tb.buffer = torch.zeros_like(client_tb.buffer)
                 flatten_local_models.append(client_tb)
-            # receive local models from master.
+            # receive local models from master. #接收上一轮的本地模型
             for i in range(self.M):
                 dist.recv(tensor=flatten_local_models[i].buffer, src=0)
             
@@ -134,7 +134,7 @@ class WorkerpFedSD(WorkerBase):
                     loss, _ = self._local_training_with_last_local_model(data_batch)
 
                 with self.timer("backward_pass", epoch=self.scheduler.epoch_):
-                    loss.backward()
+                    loss.backward() #更新本地模型
                     self.optimizer.step()
                     self.scheduler.step()
 
@@ -178,13 +178,13 @@ class WorkerpFedSD(WorkerBase):
 
         last_local_logit = self.last_local_model(data_batch["input"])
         # feature_teacher = self.last_local_model.activations[-1]
-        loss2 = self.conf.lamda * self._divergence(
+        loss2 = self.conf.lamda * self._divergence( #λ为论文中的知识蒸馏的超参
             student_logits = output,
             teacher_logits = last_local_logit,
             KL_temperature=self.conf.KL_T,
         )
 
-        loss_all = loss + loss2
+        loss_all = loss + loss2 #总损失
 
         # update tracker.
         if self.tracker is not None:

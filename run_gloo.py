@@ -93,6 +93,8 @@ def init_config(conf):
     conf.graph.rank = dist.get_rank()
 
     # init related to randomness on cpu.
+    """_summary_
+    """    
     if not conf.same_seed_process:
         conf.manual_seed = 1000 * conf.manual_seed + conf.graph.rank
     np.random.seed(conf.manual_seed)
@@ -106,7 +108,7 @@ def init_config(conf):
         torch.cuda.manual_seed(conf.manual_seed)
         # torch.cuda.set_device(conf.graph.primary_device)
         # device_id = conf.graph.rank % torch.cuda.device_count()
-        torch.cuda.set_device(conf.graph.rank % torch.cuda.device_count())
+        torch.cuda.set_device(conf.graph.rank % torch.cuda.device_count()) #在这里对数据进行了分布式
         # print(torch.cuda.current_device())
         torch.backends.cudnn.enabled = True
         # torch.backends.cudnn.benchmark = True
@@ -124,7 +126,7 @@ def init_config(conf):
     conf.arch_info["worker"] = conf.arch_info["worker"].split(":")
 
     # parse the fl_aggregate scheme.
-    conf._fl_aggregate = conf.fl_aggregate
+    conf._fl_aggregate = conf.fl_aggregate #默认为 federated avg
     conf.fl_aggregate = (
         param_parser.dict_parser(conf.fl_aggregate)
         if conf.fl_aggregate is not None
@@ -133,10 +135,10 @@ def init_config(conf):
     [setattr(conf, f"fl_aggregate_{k}", v) for k, v in conf.fl_aggregate.items()]
 
     # define checkpoint for logging (for federated learning server).
-    checkpoint.init_checkpoint(conf, rank=str(conf.graph.rank))
+    checkpoint.init_checkpoint(conf, rank=str(conf.graph.rank)) #建立 checkpoint 的子目录 0,1,2 。。。。
 
     # configure logger.
-    conf.logger = logging.Logger(conf.checkpoint_dir)
+    conf.logger = logging.Logger(conf.checkpoint_dir) #同上
 
     # display the arguments' info.
     if conf.graph.rank == 0:
@@ -150,7 +152,13 @@ import time
 
 if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
-    conf = get_args()
+    conf = get_args() #如果不在调试，应注释掉加载参数文件的代码
+    
+    # import json
+    # with open('args.txt','w') as f:
+    #     json.dump(conf.__dict__,f,indent=2)
+    
+    #client 的参与率
     conf.n_participated = int(conf.n_clients * conf.participation_ratio + 0.5)
     # conf.timestamp = str(int(time.time()))
     size = conf.n_participated + 1
@@ -163,3 +171,4 @@ if __name__ == "__main__":
 
     for p in processes:
         p.join()
+

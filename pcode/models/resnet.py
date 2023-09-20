@@ -406,7 +406,7 @@ class ResNet_cifar(ResNetBase):
 
 
 def resnet(conf, arch=None):
-    resnet_size = int((arch if arch is not None else conf.arch).replace("resnet", ""))
+    resnet_size = int((arch if arch is not None else conf.arch).replace("resnet", "")) #resnet8 这里就解析为 8
     dataset = conf.data
 
     if "cifar" in conf.data or "svhn" in conf.data:

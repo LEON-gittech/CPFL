@@ -255,6 +255,12 @@ def get_args():
 
     # parse conf.
     conf = parser.parse_args()
+    
+    #使用文件进行传参，方便调试
+    if(conf.world_conf is None):
+        import json
+        with open('./args.txt','r') as f:
+            conf.__dict__ = json.load(f)
     return conf
 
 

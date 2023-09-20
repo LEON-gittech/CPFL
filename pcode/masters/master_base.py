@@ -236,7 +236,10 @@ class MasterBase(object):
         self.conf.logger.log(f"Master received all local models.")
         return flatten_local_models
     
-    def _compute_best_mean_client_performance(self):
+    def _compute_best_mean_client_performance(self): #对于 master，并不会专门使用平均后的模型去做测试，而是使用每个 worker 的模型去做测试，然后取平均
+        """
+        The function computes the best mean client performance and logs the results.
+        """
         # personal_test method 2
         curr_perf = []
         for curr_personal_perf in self.curr_personal_perfs.values():

@@ -9,9 +9,9 @@ class TensorBuffer:
     """
 
     def __init__(self, tensors, use_cuda=True):
-        indices = [0]
+        indices = [0] #索引，为更层开始参数在总参数中的 idx
         for tensor in tensors:
-            new_end = indices[-1] + tensor.nelement()
+            new_end = indices[-1] + tensor.nelement() 
             indices.append(new_end)
 
         self._start_idx = indices[:-1]

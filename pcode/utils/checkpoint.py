@@ -29,6 +29,17 @@ def get_checkpoint_folder_name(conf):
 
 
 def init_checkpoint(conf, rank=None):
+    """
+    The function `init_checkpoint` initializes the checkpoint directory for saving models during
+    training, creating the necessary directories if they don't exist.
+    
+    :param conf: The `conf` parameter is an object that contains various configuration settings for the
+    checkpoint initialization process. It likely includes information such as the checkpoint directory,
+    data directory, architecture, experiment name, and timestamp
+    :param rank: The `rank` parameter is an optional argument that represents the rank of the process.
+    It is used to create a separate checkpoint directory for each process when running in a distributed
+    setting. If `rank` is not provided, the checkpoint directory is created for the main process
+    """
     # init checkpoint_root for the main process.
     conf.checkpoint_root = join(
         conf.checkpoint,

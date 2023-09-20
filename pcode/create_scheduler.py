@@ -34,7 +34,7 @@ class Scheduler(object):
             if self.conf.base_batch_size is not None
             else self.conf.batch_size
         )
-        self.learning_rate_per_samples = self.conf.lr / self.conf.base_batch_size
+        self.learning_rate_per_samples = self.conf.lr / self.conf.base_batch_size #这里为什么要除以 base_batch_size
         self.learning_rate_ = self.learning_rate_per_samples * self.conf.batch_size
 
         # if scaleup.
@@ -151,7 +151,7 @@ class Scheduler(object):
         self._update_training_progress()
 
     def _update_training_progress(self):
-        self.epoch_ = self.local_index / self.conf.num_batches_per_device_per_epoch
+        self.epoch_ = self.local_index / self.conf.num_batches_per_device_per_epoch #idx 应该是记录本地的 iteration
         self.conf.local_index = self.local_index
         self.conf.epoch_ = self.epoch_
         self.epoch = int(self.epoch_)

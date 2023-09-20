@@ -14,6 +14,15 @@ def str2bool(v):
 
 
 def dict_parser(values):
+    """
+    The function `dict_parser` takes a string of key-value pairs and returns a dictionary where the keys
+    are the keys from the input string and the values are the corresponding values, with values that can
+    be converted to float being converted and values that can be converted to boolean being converted.
+    
+    :param values: The `values` parameter is a string that contains key-value pairs separated by commas.
+    Each key-value pair is in the format `key=value`
+    :return: a dictionary containing key-value pairs.
+    """
     local_dict = {}
     for kv in values.split(","):
         k, v = kv.split("=")
