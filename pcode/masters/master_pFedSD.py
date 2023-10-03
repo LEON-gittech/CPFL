@@ -116,6 +116,9 @@ class MasterpFedSD(MasterBase):
             
             if self.conf.personal_test:
                 self._update_client_performance(selected_client_ids)
+            #使用全局模型去做测试
+            # if self.conf.personal_test:
+            #     self._update_client_performance_by_master_model(selected_client_ids)
             # evaluate the aggregated model.
             self.conf.logger.log(f"Master finished one round of federated learning.\n")
             
@@ -218,6 +221,26 @@ class MasterpFedSD(MasterBase):
                 self.conf,
                 self.client_coordinators[client_id],
                 self.local_models[client_id],
+                self.criterion,
+                self.metrics,
+                [self.local_test_loaders[client_id]],
+                label=f"local_test_loader_client_{client_id}",
+            )
+        
+        self._compute_best_mean_client_performance() 
+    
+    #感觉应该是使用 全局的模型去做测试吧
+    def _update_client_performance_by_master_model(self, selected_client_ids):
+        # get client model best performance on personal test distribution
+        if self.conf.graph.comm_round == 1:
+            test_client_ids = self.client_ids
+        else:
+            test_client_ids = selected_client_ids
+        for client_id in test_client_ids:
+            self.curr_personal_perfs[client_id] = master_utils.do_validation_personal(
+                self.conf,
+                self.client_coordinators[client_id],
+                self.master_model,
                 self.criterion,
                 self.metrics,
                 [self.local_test_loaders[client_id]],

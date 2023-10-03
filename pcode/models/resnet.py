@@ -362,7 +362,7 @@ class ResNet_cifar(ResNetBase):
             planes=int(32 * scaling),
             block_num=block_nums,
             stride=2,
-            group_norm_num_groups=group_norm_num_groups,
+            group_norm_num_groups=group_norm_num_groups
         )
         self.layer3 = self._make_block(
             block_fn=block_fn,

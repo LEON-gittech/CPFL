@@ -106,7 +106,11 @@ class WorkerpFedSD(WorkerBase):
 
         # init the model and dataloader.
         self.prepare_local_train_loader()
-        if self.conf.graph.on_cuda:
+        if self.conf.graph.on_cuda: #颠倒 model 和 last_local_model，看看会发生什么
+            # tmp = self.model
+            # self.model = self.last_local_model.cuda()
+            # self.last_local_model = tmp.cuda()
+            # del tmp
             self.model = self.model.cuda()
             self.last_local_model = self.last_local_model.cuda()
 

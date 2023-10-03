@@ -93,7 +93,7 @@ def do_validation_personal(
     model,
     criterion,
     metrics,
-    data_loaders,
+    data_loaders, #test 集
     performance=None,
     label=None,
 ):
@@ -119,7 +119,7 @@ def get_avg_perf_on_dataloaders(
     print(f"\tGet averaged performance from {len(data_loaders)} data_loaders.")
     performance = []
 
-    for idx, data_loader in enumerate(data_loaders):
+    for idx, data_loader in enumerate(data_loaders): #一个 client 可能会有多个 test data loader
         _performance = validate(
             conf,
             coordinator,
