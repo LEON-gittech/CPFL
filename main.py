@@ -23,10 +23,8 @@ def main(conf):
 
     # init the config.
     init_config(conf)
-
     # start federated learning.
     process = Master(conf) if conf.graph.rank == 0 else Worker(conf)
-    print("rank is "+conf.graph.rank)
     process.run()
 
 

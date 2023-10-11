@@ -36,5 +36,6 @@ class TensorBuffer:
         return self.buffer.nelement()
 
     def unpack(self, tensors):
+        """这个 Python 代码片段的作用是将 TensorBuffer 对象中的数据解包到 PyTorch 张量中。"""
         for tensor, entry in zip(tensors, self):
             tensor.data = entry.clone()

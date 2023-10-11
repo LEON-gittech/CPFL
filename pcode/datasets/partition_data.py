@@ -120,7 +120,7 @@ class DataPartitioner(object):
         self.partition_indices(indices)
 
     def partition_indices(self, indices):
-        if self.conf.graph.rank == 0:
+        if self.conf.graph.rank == 0: #数据的分布由 master 决定，client 只读取分布完成的数据
             indices = self._create_indices(indices)
         # verify partition correctness
         # assert len(indices) == self.data_size

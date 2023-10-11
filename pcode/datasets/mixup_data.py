@@ -7,7 +7,11 @@ import torch
 def mixup_criterion(criterion, pred, y_a, y_b, _lambda):
     return _lambda * criterion(pred, y_a) + (1 - _lambda) * criterion(pred, y_b)
 
-
+#数据增强
+# 随机选取两个样本x1和x2,以及它们对应的标签y1和y2
+# 生成一个随机数λ,通常从beta分布中采样
+# 计算混合样本:x = λ * x1 + (1 - λ) * x2
+# 计算混合标签:y = λ * y1 + (1 - λ) * y2
 def mixup_data(x, y, alpha=1.0, assist_non_iid=False, use_cuda=True):
     """Returns mixed inputs, pairs of targets, and lambda"""
     if alpha > 0:

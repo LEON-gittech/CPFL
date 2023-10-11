@@ -176,7 +176,7 @@ def simple_cnn(conf):
     if "cifar100" in dataset:
         return CNNCifar100(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)   
     elif "cifar10" in dataset:
-        return CNNCifar(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias) 
+        return CNNCifar(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)
     elif "mnist" == dataset or "fmnist" == dataset:
         return CNNMnist(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)
     elif "femnist" == dataset:

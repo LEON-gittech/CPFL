@@ -2,6 +2,7 @@
 import copy
 import math
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 __all__ = ["resnet"]
@@ -377,7 +378,7 @@ class ResNet_cifar(ResNetBase):
             in_features=int(64 * scaling * block_fn.expansion),
             out_features=self.num_classes,
         )
-
+        
         # weight initialization based on layer type.
         self._weight_initialization()
 
@@ -405,18 +406,128 @@ class ResNet_cifar(ResNetBase):
         return x
 
 
+class ResNet_cifar_con(ResNetBase):
+    def __init__(
+        self,
+        dataset,
+        resnet_size,
+        scaling=1,
+        save_activations=False,
+        group_norm_num_groups=None,
+        freeze_bn=False,
+        freeze_bn_affine=False,
+        feature_dim = 128
+    ):
+        super(ResNet_cifar_con, self).__init__()
+        self.dataset = dataset
+        self.freeze_bn = freeze_bn
+        self.freeze_bn_affine = freeze_bn_affine
+        self.feature_dim = feature_dim
+        
+        # define model.
+        if resnet_size % 6 != 2:
+            raise ValueError("resnet_size must be 6n + 2:", resnet_size)
+        block_nums = (resnet_size - 2) // 6
+        block_fn = Bottleneck if resnet_size >= 44 else BasicBlock
+
+        # decide the num of classes.
+        self.num_classes = self._decide_num_classes()
+
+        # define layers.
+        assert int(16 * scaling) > 0
+        self.inplanes = int(16 * scaling)
+        self.conv1 = nn.Conv2d(
+            in_channels=3,
+            out_channels=(16 * scaling),
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False,
+        )
+        self.bn1 = norm2d(group_norm_num_groups, planes=int(16 * scaling))
+        self.relu = nn.ReLU(inplace=True)
+
+        self.layer1 = self._make_block(
+            block_fn=block_fn,
+            planes=int(16 * scaling),
+            block_num=block_nums,
+            group_norm_num_groups=group_norm_num_groups,
+        )
+        self.layer2 = self._make_block(
+            block_fn=block_fn,
+            planes=int(32 * scaling),
+            block_num=block_nums,
+            stride=2,
+            group_norm_num_groups=group_norm_num_groups
+        )
+        self.layer3 = self._make_block(
+            block_fn=block_fn,
+            planes=int(64 * scaling),
+            block_num=block_nums,
+            stride=2,
+            group_norm_num_groups=group_norm_num_groups,
+        )
+
+        self.avgpool = nn.AvgPool2d(kernel_size=8)
+        self.classifier = nn.Linear(
+            in_features=int(64 * scaling * block_fn.expansion),
+            out_features=self.num_classes,
+        )
+        
+        self.g = nn.Sequential(nn.Linear(int(64 * scaling * block_fn.expansion), 512, bias=False), nn.BatchNorm1d(512),
+                               nn.ReLU(inplace=True), nn.Linear(512, self.feature_dim, bias=True))
+        
+        # weight initialization based on layer type.
+        self._weight_initialization()
+
+        # a placeholder for activations in the intermediate layers.
+        self.save_activations = save_activations
+        self.activations = None
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.layer1(x)
+        activation1 = x
+        x = self.layer2(x)
+        activation2 = x
+        x = self.layer3(x)
+        activation3 = x
+        x = self.avgpool(x)
+        x_f = x.view(x.size(0), -1)
+        # projection head
+        out = self.g(x_f)
+        # classification head
+        x = self.classifier(x_f)
+
+        if self.save_activations:
+            self.activations = [activation1, activation2, activation3, x_f]
+        return F.normalize(x_f,dim=-1), F.normalize(out,dim=-1), x #out是投影头输出的特征在投影空间的投影
+
 def resnet(conf, arch=None):
     resnet_size = int((arch if arch is not None else conf.arch).replace("resnet", "")) #resnet8 这里就解析为 8
     dataset = conf.data
 
     if "cifar" in conf.data or "svhn" in conf.data:
-        model = ResNet_cifar(
-            dataset=dataset,
-            resnet_size=resnet_size,
-            freeze_bn=conf.freeze_bn,
-            freeze_bn_affine=conf.freeze_bn_affine,
-            group_norm_num_groups=conf.group_norm_num_groups,
-        )
+        #根据 conf.is_con 判断是否使用加入对比学习的 resnet
+        if conf.is_con:
+            model = ResNet_cifar_con(
+                dataset=dataset,
+                resnet_size=resnet_size,
+                freeze_bn=conf.freeze_bn,
+                freeze_bn_affine=conf.freeze_bn_affine,
+                group_norm_num_groups=conf.group_norm_num_groups,
+            )
+        else:
+            model = ResNet_cifar(
+                dataset=dataset,
+                resnet_size=resnet_size,
+                freeze_bn=conf.freeze_bn,
+                freeze_bn_affine=conf.freeze_bn_affine,
+                group_norm_num_groups=conf.group_norm_num_groups,
+            )
     elif "imagenet" in dataset:
         if (
             "imagenet" in conf.data and len(conf.data) > 8

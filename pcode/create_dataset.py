@@ -8,7 +8,7 @@ from pcode.datasets.prepare_data import get_combine_dataset, get_dataset
 
 """create dataset and load the data_batch."""
 
-
+#这里的 load 指将数据放入显存
 def load_data_batch(conf, _input, _target, is_training=True):
     """Load a mini-batch and record the loading time."""
     if conf.graph.on_cuda:
@@ -31,6 +31,30 @@ def load_data_batch(conf, _input, _target, is_training=True):
         }
     else:
         _data_batch = {"input": _input, "target": _target}
+    return _data_batch
+
+def load_data_batch_con(conf, pos1,pos2,_input, _target, is_training=True):
+    """Load a mini-batch and record the loading time."""
+    if conf.graph.on_cuda:
+        pos1,pos2,_input, _target = pos1.cuda(),pos2.cuda(),_input.cuda(), _target.cuda()
+
+    # argument data.
+    if conf.use_mixup and is_training:
+        _input, _target_a, _target_b, mixup_lambda = mixup.mixup_data(
+            _input,
+            _target,
+            alpha=conf.mixup_alpha,
+            assist_non_iid=conf.mixup_noniid,
+            use_cuda=conf.graph.on_cuda,
+        )
+        _data_batch = {
+            "input": _input,
+            "target_a": _target_a,
+            "target_b": _target_b,
+            "mixup_lambda": mixup_lambda,
+        }
+    else:
+        _data_batch = {"pos1":pos1,"pos2":pos2,"input": _input, "target": _target}
     return _data_batch
 
 
@@ -177,6 +201,7 @@ def define_local_dataset(conf, client_id, datasets, display_log=True):
         # consistent_indices=False
     )
 
+    #对于 combine，自己划分 train 、 val 、 test
     train_dataset = data_partitioner.use(0)
     val_dataset = data_partitioner.use(1)
     test_dataset = data_partitioner.use(2)
@@ -201,7 +226,7 @@ def define_local_data_loader(conf, client_id, data_type, data, shuffle=True):
         shuffle=shuffle,
         num_workers=conf.num_workers,
         pin_memory=conf.pin_memory,
-        drop_last=False,
+        drop_last=True,
     	multiprocessing_context='fork'
     )
 
@@ -221,7 +246,7 @@ def define_local_data_loader(conf, client_id, data_type, data, shuffle=True):
     )
     return data_loader
 
-def define_combine_dataset(conf, dataset):
+def define_combine_dataset(conf, dataset):  #默认是进行均分
         world_size = conf.n_clients
         partition_sizes = [1.0 / world_size for _ in range(world_size)]
 

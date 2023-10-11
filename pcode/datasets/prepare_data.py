@@ -13,6 +13,7 @@ from pcode.datasets.loader.femnist import define_femnist_folder
 from pcode.datasets.loader.mnist import MNIST, FashionMNIST
 from pcode.datasets.loader.svhn_folder import define_svhn_folder
 
+import pcode.datasets.cifar_utils as cifar_utils
 """the entry for classification tasks."""
 
 
@@ -309,7 +310,7 @@ def get_dataset(
     download=True,
 ):
     # create data folder if it does not exist.
-    root = os.path.join(datasets_path, name)
+    root = os.path.join(datasets_path, name) #数据集根目录
 
     if name == "cifar10" or name == "cifar100":
         return _get_cifar(
@@ -349,7 +350,7 @@ def get_combine_dataset(
     root = os.path.join(datasets_path, name)
 
     if name == "cifar10" or name == "cifar100":
-        return _get_combine_cifar(
+        return _get_combine_cifar(                                  #默认 trans 和 target_trans 都是 none
             conf, name, root, transform, target_transform, download
         )
     elif name == "mnist":
@@ -364,6 +365,10 @@ def get_combine_dataset(
         raise NotImplementedError
 
 def _get_combine_cifar(conf, name, root, transform, target_transform, download):
+    # （pos_1, pos_2, img, target）
+    if conf.is_con:
+        return cifar_utils.CIFAR10Pair(root=root, train=True, transform=cifar_utils.train_transform, download=True)
+        
     # decide normalize parameter.
     if name == "cifar10":
         dataset_loader = CIFAR10
@@ -385,6 +390,7 @@ def _get_combine_cifar(conf, name, root, transform, target_transform, download):
             [transforms.ToTensor()] + ([normalize] if normalize is not None else [])
         )
 
+    #这里返回的是训练集
     return dataset_loader(
         root=root,
         transform=transform,

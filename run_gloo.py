@@ -27,7 +27,13 @@ from pcode.workers.worker_fedavg import WorkerFedAvg
 # from pcode.workers.worker_lg_fedavg import WorkerLGFedAvg
 # from pcode.workers.worker_local_train import WorkerLocalTrain
 from pcode.workers.worker_pFedSD import WorkerpFedSD
-
+#对比学习
+## SD+Con
+from pcode.masters.master_pFedSD_con import MasterpFedSDCon
+from pcode.workers.worker_pFedSD_con import WorkerpFedSDCon
+## Con
+from pcode.masters.master_pFedSD_con import MasterFedAvgCon
+from pcode.workers.worker_pFedSD_con import WorkerFedAvgCon
 # from pcode.workers.worker_pFedme import WorkerpFedMe
 # from pcode.workers.worker_tlkt import WorkerTLKT
 
@@ -43,7 +49,7 @@ def main(rank,size,conf,port):
         conf.distributed = False
 
     # init the config.
-    init_config(conf)
+    init_config(conf) #同步
 
     if conf.algo == "fedavg":
         master_func = MasterFedAvg
@@ -72,6 +78,13 @@ def main(rank,size,conf,port):
     elif conf.algo == "pFedSD":
         master_func = MasterpFedSD
         worker_func = WorkerpFedSD
+    #对比学习
+    elif conf.algo == "pFedSD_con":
+        master_func = MasterpFedSDCon
+        worker_func = WorkerpFedSDCon
+    elif conf.algo == "fedavg_con":
+        master_func = MasterFedAvgCon
+        worker_func = WorkerFedAvgCon
         
 
     else:
@@ -154,9 +167,9 @@ if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
     conf = get_args() #如果不在调试，应注释掉加载参数文件的代码
     
-    # import json
-    # with open('args.txt','w') as f:
-    #     json.dump(conf.__dict__,f,indent=2)
+    import json
+    with open('args.txt','w') as f:
+        json.dump(conf.__dict__,f,indent=2)
     
     #client 的参与率
     conf.n_participated = int(conf.n_clients * conf.participation_ratio + 0.5)
@@ -167,6 +180,7 @@ if __name__ == "__main__":
     for rank in range(size):
         p = mp.Process(target=main, args=(rank, size,conf,conf.port))
         p.start()
+        print("rank {} started",rank)
         processes.append(p)
 
     for p in processes:
