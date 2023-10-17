@@ -32,8 +32,14 @@ from pcode.workers.worker_pFedSD import WorkerpFedSD
 from pcode.masters.master_pFedSD_con import MasterpFedSDCon
 from pcode.workers.worker_pFedSD_con import WorkerpFedSDCon
 ## Con
-from pcode.masters.master_pFedSD_con import MasterFedAvgCon
-from pcode.workers.worker_pFedSD_con import WorkerFedAvgCon
+from pcode.masters.master_fedavg_con import MasterFedAvgCon
+from pcode.workers.worker_fedavg_con import WorkerFedAvgCon
+# Moon
+from pcode.masters.master_fedavg_moon import MasterFedAvgMoon
+from pcode.workers.worker_fedavg_moon import WorkerFedAvgMoon
+# Con+Moon
+from pcode.masters.master_fedavg_con_moon import MasterFedAvgConMoon
+from pcode.workers.worker_fedavg_con_moon import WorkerFedAvgConMoon
 # from pcode.workers.worker_pFedme import WorkerpFedMe
 # from pcode.workers.worker_tlkt import WorkerTLKT
 
@@ -85,7 +91,12 @@ def main(rank,size,conf,port):
     elif conf.algo == "fedavg_con":
         master_func = MasterFedAvgCon
         worker_func = WorkerFedAvgCon
-        
+    elif conf.algo == "fedavg_moon":
+        master_func = MasterFedAvgMoon
+        worker_func = WorkerFedAvgMoon
+    elif conf.algo == "fedavg_con_moon":
+        master_func = MasterFedAvgConMoon
+        worker_func = WorkerFedAvgConMoon
 
     else:
         raise NotImplementedError

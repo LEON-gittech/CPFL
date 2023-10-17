@@ -38,7 +38,7 @@ def inference(
     else:
         loss = criterion(output, data_batch["target"])
         performance = metrics.evaluate(loss, output, data_batch["target"])
-
+    
     # update tracker.
     if tracker is not None:
         tracker.update_metrics(
@@ -265,17 +265,28 @@ def validate(
         data_batch = create_dataset.load_data_batch(
             conf, _input, _target, is_training=False
         )
-
-        with torch.no_grad():
-            inference(
-                conf,
-                model,
-                criterion,
-                metrics,
-                data_batch,
-                tracker_te,
-                is_training=False,
-            )
+        if conf.algo == "fedavg_moon":
+            with torch.no_grad():
+                inference_con(
+                    conf,
+                    model,
+                    criterion,
+                    metrics,
+                    data_batch,
+                    tracker_te,
+                    is_training=False,
+                )
+        else:
+            with torch.no_grad():
+                inference(
+                    conf,
+                    model,
+                    criterion,
+                    metrics,
+                    data_batch,
+                    tracker_te,
+                    is_training=False,
+                )
 
     # place back model to the cpu.
     if conf.graph.on_cuda:

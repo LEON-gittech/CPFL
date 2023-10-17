@@ -512,13 +512,14 @@ def resnet(conf, arch=None):
 
     if "cifar" in conf.data or "svhn" in conf.data:
         #根据 conf.is_con 判断是否使用加入对比学习的 resnet
-        if conf.is_con:
+        if conf.is_con or conf.algo=="fedavg_moon":
             model = ResNet_cifar_con(
                 dataset=dataset,
                 resnet_size=resnet_size,
                 freeze_bn=conf.freeze_bn,
                 freeze_bn_affine=conf.freeze_bn_affine,
                 group_norm_num_groups=conf.group_norm_num_groups,
+                feature_dim=conf.feature_dim
             )
         else:
             model = ResNet_cifar(

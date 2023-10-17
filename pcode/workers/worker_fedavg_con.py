@@ -47,11 +47,11 @@ class WorkerFedAvgCon(WorkerBase):
         
         # entering local updates and will finish only after reaching the expected local_n_epochs.
         while True:
-            for _input, _target in self.train_loader:
+            for pos1,pos2,_input, _target in self.train_loader:
                 # load data
                 with self.timer("load_data", epoch=self.scheduler.epoch_):
-                    data_batch = create_dataset.load_data_batch(
-                        self.conf, _input, _target, is_training=True
+                    data_batch = create_dataset.load_data_batch_con(
+                        self.conf, pos1,pos2,_input, _target, is_training=True
                     )
 
                 # inference and get current performance.
@@ -107,57 +107,34 @@ class WorkerFedAvgCon(WorkerBase):
             self.tracker.reset()
             if self.conf.logger.meet_cache_limit():
                 self.conf.logger.save_json()
-
-    def cal_prox_loss(self):
-        prox_term = 0.
-        for w, w_t in zip(self.model.parameters(), self.init_model.parameters()):
-            prox_term += torch.pow(torch.norm((w - w_t)), 2)
-
-        return (self.conf.local_prox_term / 2) * prox_term
     
-    def prepare_local_train_loader(self):
-        if self.conf.prepare_data == "combine":
-            self.train_loader = create_dataset.define_local_data_loader(
-                self.conf,
-                self.conf.graph.client_id,
-                data_type = "train",
-                data=self.local_datasets[self.conf.graph.client_id]["train"],
-            )
-        else:
-            self.train_loader, _ = create_dataset.define_data_loader(
-                self.conf,
-                dataset=self.dataset["train"],
-                # localdata_id start from 0 to the # of clients - 1.
-                # client_id starts from 1 to the # of clients.
-                localdata_id=self.conf.graph.client_id - 1,
-                is_train=True,
-                data_partitioner=self.data_partitioner,
-            )
-
     def _inference(self, data_batch):
         """Inference on the given model and get loss and accuracy."""
         # do the forward pass and get the output.
-        output = self.model(data_batch["input"])
+        # output = self.model(data_batch["pos1"],data_batch["pos2"],data_batch["input"])
+        feature_1, out_1,pred_c_1  = self.model(data_batch["pos1"])
+        feature_2, out_2,pred_c_2 = self.model(data_batch["pos2"])
+        _,_,output = self.model(data_batch["input"])
+        # [2*B, D]
+        out = torch.cat([out_1, out_2], dim=0)
+        # [2*B, 2*B]
+        sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / self.conf.temperature)
+        mask = (torch.ones_like(sim_matrix) - torch.eye(2 * self.conf.batch_size, device=sim_matrix.device)).bool()
+        # [2*B, 2*B-1]
+        sim_matrix = sim_matrix.masked_select(mask).view(2 * self.conf.batch_size, -1)
 
-        # evaluate the output and get the loss, performance.
-        if self.conf.use_mixup:
-            loss = mixup.mixup_criterion(
-                self.criterion,
-                output,
-                data_batch["target_a"],
-                data_batch["target_b"],
-                data_batch["mixup_lambda"],
-            )
+        # compute loss
+        pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / self.conf.temperature)
+        # [2*B]
+        pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
+        loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+        #loss 加上 CEL
+        pred_c = (pred_c_1+pred_c_2)/2
+        tmp = F.one_hot(data_batch["target"].cuda(non_blocking=True,device=self.device),num_classes=self.conf.num_classes).float()
+        cel = F.cross_entropy(pred_c,tmp)
+        loss += cel
 
-            performance_a = self.metrics.evaluate(loss, output, data_batch["target_a"])
-            performance_b = self.metrics.evaluate(loss, output, data_batch["target_b"])
-            performance = [
-                data_batch["mixup_lambda"] * _a + (1 - data_batch["mixup_lambda"]) * _b
-                for _a, _b in zip(performance_a, performance_b)
-            ]
-        else:
-            loss = self.criterion(output, data_batch["target"])
-            performance = self.metrics.evaluate(loss, output, data_batch["target"])
+        performance = self.metrics.evaluate(loss, output, data_batch["target"])
 
         # update tracker.
         if self.tracker is not None:
@@ -165,83 +142,3 @@ class WorkerFedAvgCon(WorkerBase):
                 [loss.item()] + performance, n_samples=data_batch["input"].size(0)
             )
         return loss, output
-
-    def _local_training_with_self_distillation(self, loss, output, data_batch):
-        if self.conf.self_distillation > 0:
-            loss = loss * (
-                1 - self.conf.self_distillation
-            ) + self.conf.self_distillation * self._divergence(
-                student_logits=output / self.conf.self_distillation_temperature,
-                teacher_logits=self.init_model(data_batch["input"])
-                / self.conf.self_distillation_temperature,
-            )
-        return loss
-
-    def _divergence(self, student_logits, teacher_logits, KL_temperature=1.0):
-        divergence = F.kl_div(
-            F.log_softmax(student_logits / KL_temperature, dim=1),
-            F.softmax(teacher_logits / KL_temperature, dim=1),
-            reduction="batchmean",
-        )  # forward KL
-        return KL_temperature * KL_temperature * divergence
-
-    def _turn_off_grad(self, model):
-        for param in model.parameters():
-            param.requires_grad = False
-        return model
-
-    def _send_model_to_master(self):
-        dist.barrier()
-        self.conf.logger.log(
-            f"Worker-{self.conf.graph.worker_id} (client-{self.conf.graph.client_id}) sending the model ({self.arch}) back to Master."
-        )
-        flatten_model = TensorBuffer(list(self.model.state_dict().values()))
-        dist.send(tensor=flatten_model.buffer, dst=0)
-        dist.barrier()
-    
-    def get_next_train_batch(self):
-        try:
-            # Samples a new batch for persionalizing
-            (X, y) = next(self.iter_trainloader)
-        except StopIteration:
-            # restart the generator if the previous generator is exhausted.
-            self.iter_trainloader = iter(self.train_loader)
-            (X, y) = next(self.iter_trainloader)
-        return (X.to(self.device), y.to(self.device))
-    
-    def update_parameters(self, model, new_params):
-        for param, new_param in zip(model.parameters(), new_params):
-            param.data = new_param.data.clone()
-
-    def _terminate_comm_round(self):
-        self.model = self.model.cpu()
-        if hasattr(self, 'init_model'):
-            del self.init_model
-        self.scheduler.clean()
-        self.conf.logger.save_json()
-        self.conf.logger.log(
-            f"Worker-{self.conf.graph.worker_id} (client-{self.conf.graph.client_id}) finished one round of federated learning: (comm_round={self.conf.graph.comm_round})."
-        )
-
-    def _terminate_by_early_stopping(self):
-        if self.conf.graph.comm_round == -1:
-            dist.barrier()
-            self.conf.logger.log(
-                f"Worker-{self.conf.graph.worker_id} finished the federated learning by early-stopping."
-            )
-            return True
-        else:
-            return False
-
-    def _terminate_by_complete_training(self):
-        if self.conf.graph.comm_round == self.conf.n_comm_rounds:
-            dist.barrier()
-            self.conf.logger.log(
-                f"Worker-{self.conf.graph.worker_id} finished the federated learning: (total comm_rounds={self.conf.graph.comm_round})."
-            )
-            return True
-        else:
-            return False
-
-    def _is_finished_one_comm_round(self):
-        return True if self.conf.epoch_ >= self.conf.local_n_epochs else False

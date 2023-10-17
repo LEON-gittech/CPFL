@@ -12,15 +12,15 @@ class CIFAR10Pair(CIFAR10):
         img = Image.fromarray(img)
 
         img_norm = test_transform(img) #这里不能直接返回 img，而是要返回归一化后的 img
-        
-        if self.transform is not None:
-            pos_1 = self.transform(img)
-            pos_2 = self.transform(img)
-
         if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return pos_1, pos_2, img_norm, target
+                target = self.target_transform(target)
+        if self.train:
+            if self.transform is not None:
+                pos_1 = self.transform(img)
+                pos_2 = self.transform(img)
+            return pos_1, pos_2, img_norm, target
+        else:
+            return img_norm, target
 
 
 train_transform = transforms.Compose([

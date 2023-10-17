@@ -9,6 +9,8 @@ Please run the following commands below to install dependencies.
 conda create -y -n fed_d python=3.7
 conda activate fed_d
 conda install -y -c pytorch pytorch=1.7.1 torchvision=0.8.2 matplotlib python-lmdb cudatoolkit=11.3 cudnn
+#
+
 pip install transformers datasets pytreebank opencv-python torchcontrib gpytorch 
 ```
 

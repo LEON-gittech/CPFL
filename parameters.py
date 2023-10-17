@@ -246,7 +246,7 @@ def get_args():
     """"FedAKT"""
     # parser.add_argument("--loss_scale", default=1.0, type=float)
     parser.add_argument("--M", default=1, type=int)
-    parser.add_argument("--lamda", default=1.0, type=float)
+    parser.add_argument("--lamda", default=0.5, type=float,help='控制知识蒸馏的权重')
     # parser.add_argument("--mutual_epoch", default=4, type=int)
     parser.add_argument("--KL_T", default=1, type=float)
     parser.add_argument("--AT_beta", default=1, type=float)
@@ -255,6 +255,9 @@ def get_args():
     parser.add_argument("--is_con", default=0, type=int,help="是否加入对比学习")
     parser.add_argument("--temperature", default=0.5, type=float,help='Temperature used in softmax')
     parser.add_argument("--num_classes", default=10, type=int)
+    parser.add_argument("--feature_dim", default=128, type=int)
+    # moon
+    parser.add_argument("--mu", default=1.0, type=float,help="类似于 SimpleCLR 里的λ")
     # parser.add_argument("--local_use_mutual", default=True, type=str2bool)
     # parser.add_argument("--local_attn_target_stu", default=False, type=str2bool)
 
