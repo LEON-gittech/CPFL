@@ -91,6 +91,55 @@ class CNNfemnist(nn.Module):
         return x
 
 
+
+class CNNCifarCon(nn.Module):
+    def __init__(
+        self, dataset, w_conv_bias=True, w_fc_bias=True, save_activations=True, feature_dim = 64
+    ):
+        super(CNNCifarCon, self).__init__()
+
+        # decide the num of classes.
+        self.num_classes = _decide_num_classes(dataset)
+
+        # define layers.
+        self.conv1 = nn.Conv2d(3, 6, 5, bias=w_conv_bias)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5, bias=w_conv_bias)
+        self.fc1 = nn.Linear(16 * 5 * 5, 120, bias=w_fc_bias)
+        self.fc2 = nn.Linear(120, 84, bias=w_fc_bias)
+        self.g = nn.Sequential( nn.BatchNorm1d(84),
+                               nn.ReLU(inplace=True), nn.Linear(84, feature_dim, bias=True))
+        self.classifier = nn.Linear(84, self.num_classes, bias=w_fc_bias)
+
+        self.weight_keys = [['fc1.weight', 'fc1.bias'],
+                            ['fc2.weight', 'fc2.bias'],
+                            ['classifier.weight', 'classifier.bias'],
+                            ['conv2.weight', 'conv2.bias'],
+                            ['conv1.weight', 'conv1.bias'],
+                            ]
+
+        # a placeholder for activations in the intermediate layers.
+        self.save_activations = save_activations
+        self.activations = None
+
+    def forward(self, x):
+        activation1 = self.conv1(x)
+        x = self.pool(F.relu(activation1))
+
+        activation2 = self.conv2(x)
+        x = self.pool(F.relu(activation2))
+        x = x.view(-1, 16 * 5 * 5)
+        # x_f = x
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x_f = x
+        out = self.g(x_f)
+        x = self.classifier(x)
+
+        if self.save_activations:
+            self.activations = [activation1, activation2, x_f]
+        return F.normalize(x_f,dim=-1), F.normalize(out,dim=-1), x
+
 class CNNCifar(nn.Module):
     def __init__(
         self, dataset, w_conv_bias=True, w_fc_bias=True, save_activations=True
@@ -176,7 +225,10 @@ def simple_cnn(conf):
     if "cifar100" in dataset:
         return CNNCifar100(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)   
     elif "cifar10" in dataset:
-        return CNNCifar(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)
+        if conf.is_con or conf.algo=="fedavg_moon":
+            return CNNCifarCon(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)
+        else:
+            return CNNCifar(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)
     elif "mnist" == dataset or "fmnist" == dataset:
         return CNNMnist(dataset, w_conv_bias=conf.w_conv_bias, w_fc_bias=conf.w_fc_bias)
     elif "femnist" == dataset:
