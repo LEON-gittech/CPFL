@@ -40,6 +40,9 @@ from pcode.workers.worker_fedavg_moon import WorkerFedAvgMoon
 # Con+Moon
 from pcode.masters.master_fedavg_con_moon import MasterFedAvgConMoon
 from pcode.workers.worker_fedavg_con_moon import WorkerFedAvgConMoon
+# pFedMe
+from pcode.masters.master_pFedMe import MasterPFedMe
+from pcode.workers.worker_pFedMe import WorkerPFedMe
 # from pcode.workers.worker_pFedme import WorkerpFedMe
 # from pcode.workers.worker_tlkt import WorkerTLKT
 
@@ -97,6 +100,9 @@ def main(rank,size,conf,port):
     elif conf.algo == "fedavg_con_moon":
         master_func = MasterFedAvgConMoon
         worker_func = WorkerFedAvgConMoon
+    elif conf.algo == "pFedMe":
+        master_func = MasterPFedMe
+        worker_func = WorkerPFedMe
 
     else:
         raise NotImplementedError
@@ -179,6 +185,7 @@ if __name__ == "__main__":
     conf = get_args() #如果不在调试，应注释掉加载参数文件的代码
     
     import json
+        
     with open('args.txt','w') as f:
         json.dump(conf.__dict__,f,indent=2)
     

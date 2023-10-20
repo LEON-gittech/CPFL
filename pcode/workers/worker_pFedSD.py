@@ -38,8 +38,9 @@ class WorkerpFedSD(WorkerBase):
                 return
 
             self._recv_model_from_master()
-
+            
             if self.is_active_before == 0:
+                print("client:",self.conf.graph.client_id)
                 self._train()
             else:
                 self._train_AKT()

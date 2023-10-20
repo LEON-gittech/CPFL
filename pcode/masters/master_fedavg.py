@@ -15,6 +15,8 @@ from pcode.masters.master_base import MasterBase
 from pcode.utils.early_stopping import EarlyStoppingTracker
 from pcode.utils.logging import save_average_test_stat
 
+import os
+import shutil
 
 class MasterFedAvg(MasterBase):
     def __init__(self, conf):
@@ -259,7 +261,16 @@ class MasterFedAvg(MasterBase):
     #     self._compute_best_mean_client_performance()
 
     def _update_GM_client_performance(self):
+        #tsne画图
+        if self.conf.graph.comm_round == 1:
+            if os.path.exists("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_out"):
+                shutil.rmtree("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_out")
+            os.mkdir("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_out")
+            if os.path.exists("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_target"):
+                shutil.rmtree("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_target")
+            os.mkdir("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_target")
         for client_id in self.client_ids:
+            self.conf.cur_client = client_id
             self.GM_curr_personal_perfs[client_id] = master_utils.do_validation_personal(
                 self.conf,
                 self.GM_client_coordinators[client_id],

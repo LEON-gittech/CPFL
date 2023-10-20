@@ -160,7 +160,10 @@ class WorkerFedAvgConMoon(WorkerBase):
             #改一下分子
             labels = torch.ones(data_batch["input"].size(0)).cuda().long()
 
-            loss = self.conf.mu * self.criterion(logits, labels)
+            moon_loss = self.conf.mu * self.criterion(logits, labels)
+            loss += moon_loss
+            print("moon_loss:",moon_loss)
+            
         # [2*B, D]
         out = torch.cat([out_1, out_2], dim=0)
         # [2*B, 2*B]
@@ -173,11 +176,14 @@ class WorkerFedAvgConMoon(WorkerBase):
         pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / self.conf.temperature)
         # [2*B]
         pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-        loss += (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+        con_loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()* self.conf.lam
+        print("con_loss:",con_loss)
+        loss += con_loss
         #loss 加上 CEL
         pred_c = (pred_c_1+pred_c_2)/2
         tmp = F.one_hot(data_batch["target"].cuda(non_blocking=True,device=self.device),num_classes=self.conf.num_classes).float()
         cel = F.cross_entropy(pred_c,tmp)
+        print("cel:",cel)
         loss += cel
 
         performance = self.metrics.evaluate(loss, output, data_batch["target"])
@@ -326,7 +332,7 @@ class WorkerFedAvgConMoon(WorkerBase):
         #     KL_temperature=self.conf.KL_T,
         # )
 
-        # loss_all = loss + loss2 #总损失
+        # loss = loss + loss2 #总损失
         # update tracker.
         if self.tracker is not None:
             self.tracker.update_metrics(

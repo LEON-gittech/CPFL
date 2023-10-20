@@ -41,7 +41,7 @@
   "participation_ratio": 1.0,
   "n_participated": null,
   "fl_aggregate": "scheme=federated_average",
-  "non_iid_alpha": 0.1,
+  "non_iid_alpha": 0.01,
   "train_fast": false,
   "local_train_scheme": null,
   "use_mixup": false,
@@ -98,7 +98,7 @@
   "manual_seed": 7,
   "evaluate": false,
   "summary_freq": 256,
-  "timestamp": "20231017121320",
+  "timestamp": "20231020111429",
   "track_time": true,
   "track_detailed_time": false,
   "display_tracked_time": true,
@@ -128,5 +128,8 @@
   "temperature": 0.5,
   "num_classes": 10,
   "feature_dim": 128,
-  "mu": 1.0
+  "lam": 1.0,
+  "mu": 1.0,
+  "K": 5,
+  "pFedMeLamda": 15
 }

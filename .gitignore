@@ -147,3 +147,12 @@ nohup.out
 *.sh
 figures/
 *.pdf
+
+# specific files not want to push
+*.npy
+*.pth
+/pcode/global_train/data/
+*.log
+/leon/data/
+/checkpoint/
+

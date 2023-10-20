@@ -256,11 +256,14 @@ def get_args():
     parser.add_argument("--temperature", default=0.5, type=float,help='Temperature used in softmax')
     parser.add_argument("--num_classes", default=10, type=int)
     parser.add_argument("--feature_dim", default=128, type=int)
+    parser.add_argument("--lam", default=1.0, type=float, help="控制对比学习权重")
     # moon
     parser.add_argument("--mu", default=1.0, type=float,help="类似于 SimpleCLR 里的λ")
     # parser.add_argument("--local_use_mutual", default=True, type=str2bool)
     # parser.add_argument("--local_attn_target_stu", default=False, type=str2bool)
-
+    # pFedMe
+    parser.add_argument("--K", default=5, type=int)
+    parser.add_argument("--pFedMeLamda", default=15, type=float)
     # parse conf.
     conf = parser.parse_args()
     

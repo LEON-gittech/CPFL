@@ -49,8 +49,7 @@ def determine_arch(conf, client_id, use_complex_arch):
     else:
         arch = conf.arch
     return arch
-
-
+    
 def define_cv_classification_model(conf, client_id, use_complex_arch, arch):
     # determine the arch.
     arch = determine_arch(conf, client_id, use_complex_arch) if arch is None else arch
@@ -86,6 +85,9 @@ def define_cv_classification_model(conf, client_id, use_complex_arch, arch):
 
 
 def get_model_stat(conf, model, arch):
+    # pFedMe 特殊处理，防止 bug
+    if conf.algo == "pFedMe": return
+    #
     conf.logger.log(
         "\t=> {} created model '{}. Total params: {}M".format(
             "Master"

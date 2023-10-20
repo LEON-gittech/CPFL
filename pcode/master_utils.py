@@ -10,7 +10,9 @@ import pcode.utils.checkpoint as checkpoint
 from pcode.utils.logging import dispaly_best_test_stat, display_test_stat
 from pcode.utils.mathdict import MathDict
 from pcode.utils.stat_tracker import RuntimeTracker
-
+import numpy as np
+import uuid
+import os
 
 def inference(
     conf, model, criterion, metrics, data_batch, tracker=None, is_training=True
@@ -38,6 +40,11 @@ def inference(
     else:
         loss = criterion(output, data_batch["target"])
         performance = metrics.evaluate(loss, output, data_batch["target"])
+    
+    # 保存输出画 tsne 图, 最后一轮且为指定的 client
+    if conf.graph.comm_round == conf.n_comm_rounds:
+        np.save("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_out/"+str(uuid.uuid1()), output.cpu().detach().numpy())
+        np.save("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_target/"+str(uuid.uuid1()), data_batch["target"].cpu().detach().numpy())
     
     # update tracker.
     if tracker is not None:
@@ -74,6 +81,10 @@ def inference_con(
         loss = criterion(output, data_batch["target"])
         performance = metrics.evaluate(loss, output, data_batch["target"])
 
+    # 保存输出画 tsne 图, 最后一轮且为指定的 client
+    if conf.graph.comm_round == conf.n_comm_rounds:
+        np.save("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_con_out/"+str(uuid.uuid1()), output.cpu().detach().numpy())
+        np.save("/home/leon/workspace/pFedSD/pcode/global_train/fedavg_con_target/"+str(uuid.uuid1()), data_batch["target"].cpu().detach().numpy())
     # update tracker.
     if tracker is not None:
         tracker.update_metrics(
