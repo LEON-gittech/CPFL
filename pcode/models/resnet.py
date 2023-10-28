@@ -145,7 +145,7 @@ class Bottleneck(nn.Module):
 
 class ResNetBase(nn.Module):
     def _decide_num_classes(self):
-        if self.dataset == "cifar10" or self.dataset == "svhn":
+        if self.dataset == "cifar10" or self.dataset == "svhn" or self.dataset == "fmnist":
             return 10
         elif self.dataset == "cifar100":
             return 100
@@ -405,7 +405,6 @@ class ResNet_cifar(ResNetBase):
             self.activations = [activation1, activation2, activation3, x_f]
         return x
 
-
 class ResNet_cifar_con(ResNetBase):
     def __init__(
         self,
@@ -471,7 +470,7 @@ class ResNet_cifar_con(ResNetBase):
         self.avgpool = nn.AvgPool2d(kernel_size=8)
         self.classifier = nn.Linear(
             in_features=int(64 * scaling * block_fn.expansion),
-            out_features=self.num_classes,
+            out_features= self.num_classes,
         )
         
         self.g = nn.Sequential(nn.Linear(int(64 * scaling * block_fn.expansion), 512, bias=False), nn.BatchNorm1d(512),
@@ -510,7 +509,7 @@ def resnet(conf, arch=None):
     resnet_size = int((arch if arch is not None else conf.arch).replace("resnet", "")) #resnet8 这里就解析为 8
     dataset = conf.data
 
-    if "cifar" in conf.data or "svhn" in conf.data:
+    if "cifar" in conf.data or "svhn" in conf.data or "fmnist" in conf.data:
         #根据 conf.is_con 判断是否使用加入对比学习的 resnet
         if conf.is_con or conf.algo=="fedavg_moon":
             model = ResNet_cifar_con(

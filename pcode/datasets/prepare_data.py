@@ -14,6 +14,7 @@ from pcode.datasets.loader.mnist import MNIST, FashionMNIST
 from pcode.datasets.loader.svhn_folder import define_svhn_folder
 
 import pcode.datasets.cifar_utils as cifar_utils
+import pcode.datasets.fmnist_utils as fmnist_utils
 """the entry for classification tasks."""
 
 
@@ -366,8 +367,11 @@ def get_combine_dataset(
 
 def _get_combine_cifar(conf, name, root, transform, target_transform, download):
     # （pos_1, pos_2, img, target）
-    if conf.is_con:
-        return cifar_utils.CIFAR10Pair(root=root, train=True, transform=cifar_utils.train_transform, download=True)
+    if conf.is_con :
+        if name=="cifar10":
+            return cifar_utils.CIFAR10Pair(root=root, train=True, transform=cifar_utils.train_transform, download=True)
+        else:
+            return cifar_utils.CIFAR100Pair(root=root, train=True, transform=cifar_utils.train_transform_100, download=True)
         
     # decide normalize parameter.
     if name == "cifar10":
@@ -415,6 +419,9 @@ def _get_combine_mnist(conf, name, root, transform, target_transform, download):
     )
 
 def _get_combine_fmnist(conf, name, root, transform, target_transform, download):
+    if conf.is_con :
+        return fmnist_utils.FMNISTPair(root=root, train=True, transform=fmnist_utils.train_transform, download=True)
+    
     # decide normalize parameter.
     normalize = (
         transforms.Normalize((0.5,), (0.5,)) 
