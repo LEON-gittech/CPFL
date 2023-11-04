@@ -421,18 +421,5 @@ def _get_combine_mnist(conf, name, root, transform, target_transform, download):
 def _get_combine_fmnist(conf, name, root, transform, target_transform, download):
     if conf.is_con :
         return fmnist_utils.FMNISTPair(root=root, train=True, transform=fmnist_utils.train_transform, download=True)
-    
-    # decide normalize parameter.
-    normalize = (
-        transforms.Normalize((0.5,), (0.5,)) 
-    )
-
-    transform = transforms.Compose(
-        [transforms.ToTensor()] + ([normalize] if normalize is not None else [])
-    )
-    return FashionMNIST(
-        root=root,
-        transform=transform,
-        target_transform=target_transform,
-        download=download,
-    )
+    else :
+        return fmnist_utils.FMNISTPair(root=root, train=True, transform=None, download=True)

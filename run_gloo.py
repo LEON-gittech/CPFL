@@ -46,6 +46,8 @@ from pcode.workers.worker_pFedMe import WorkerPFedMe
 # from pcode.workers.worker_pFedme import WorkerpFedMe
 # from pcode.workers.worker_tlkt import WorkerTLKT
 
+import logging as log
+log.basicConfig(level=log.DEBUG)
 
 def main(rank,size,conf,port):
     # init the distributed world.
@@ -103,7 +105,6 @@ def main(rank,size,conf,port):
     elif conf.algo == "pFedMe":
         master_func = MasterPFedMe
         worker_func = WorkerPFedMe
-
     else:
         raise NotImplementedError
 

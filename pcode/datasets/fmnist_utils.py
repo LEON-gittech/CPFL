@@ -8,11 +8,12 @@ import copy
 class FMNISTPair(FashionMNIST):
     """FMNIST Dataset"""
     def __getitem__(self, index):
-        img, target = np.copy(self.data[index].numpy()), np.copy(self.targets[index].numpy())
+        img, target = self.data[index].numpy(), self.targets[index].numpy()
         tmp = np.zeros((32, 32, 3), dtype=np.uint8)
         for i in range(3):
             tmp[:,:,i] = np.resize(img, (32, 32)).astype(np.uint8)
         img = Image.fromarray(tmp)
+        del tmp
         
 
         img_norm = test_transform(img) #这里不能直接返回 img，而是要返回归一化后的 img
@@ -22,7 +23,9 @@ class FMNISTPair(FashionMNIST):
             if self.transform is not None:
                 pos_1 = self.transform(img)
                 pos_2 = self.transform(img)
-            return pos_1, pos_2, img_norm, target
+                return pos_1, pos_2, img_norm, target
+            else:
+                return img_norm, target
         else:
             return img_norm, target
 
